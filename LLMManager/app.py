@@ -4,7 +4,7 @@ import json
 from flask import Flask, request, jsonify
 import threading
 
-from llm import generate_response
+from llm import generate_response_from_json
 from db import create_response_record, save_response, get_connection
 
 app = Flask(__name__)
