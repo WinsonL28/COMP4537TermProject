@@ -14,10 +14,10 @@ const MODEL_SERVER_URL = `http://${process.env.MODEL_SERVER_IP}:5000/generate`;
 app.use(express.json());
 app.use(cors()); // handles preflight OPTIONS automatically
 
-// POST /dnd
+// POST
 app.post('/dnd', async (req, res) => {
     try {
-        const { prompt } = req.body;
+        const prompt = req.body;
         const response = await axios.post(MODEL_SERVER_URL, { prompt });
         res.json({ result: response.data.response });
     } catch (error) {
@@ -27,7 +27,12 @@ app.post('/dnd', async (req, res) => {
 });
 
 // Swagger UI
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument,{
+        swaggerOptions: {
+            url: "model/api-docs/swagger.yaml"
+        }
+    })
+);
 
 // 404 handler
 app.use((req, res) => {
