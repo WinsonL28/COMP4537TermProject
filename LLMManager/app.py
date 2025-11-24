@@ -5,15 +5,16 @@ from flask import Flask, request, jsonify
 import threading
 
 from llm import generate_response
-from db import create_response_record, save_response
+from db import create_response_record, save_response, get_connection
 
 app = Flask(__name__)
 
+# waitress-serve --listen=0.0.0.0:5000 app:app
 
-def background_process(response_id, character_text, previous_context, action, prompt):
+def background_process(data, response_id, story_session_id):
     """Runs LLM generation and saves result to DB."""
     try:
-        result = generate_response(character_text, previous_context, action, prompt)
+        result = generate_response_from_json(data)
         save_response(response_id, prompt, result)
     except Exception as e:
         print("Error in background processing:", e)
@@ -25,23 +26,15 @@ def generate():
     if not data:
         return jsonify({"error": "Missing JSON body"}), 400
 
-    character = data.get("character", {})
-    previous_context = data.get("previous_context", [])
-    action = data.get("action", "")
-    prompt = data.get("prompt", "")
-
-    if not prompt:
-        return jsonify({"error": "Missing prompt"}), 400
-
-    character_text = json.dumps(character, indent=2) if isinstance(character, dict) else str(character)
 
     # Create DB row immediately and get response ID
     response_id = create_response_record()
+    story_session_id = int(data.get("story_session_id"))
 
     # Start background processing
     threading.Thread(
         target=background_process,
-        args=(response_id, character_text, previous_context, action, prompt),
+        args=(data, response_id, story_session_id),
         daemon=True
     ).start()
 
@@ -50,4 +43,6 @@ def generate():
 
 
 if __name__ == "__main__":
+    db_conn = get_connection()
+    db_conn.close()
     app.run(host="0.0.0.0", port=5000)

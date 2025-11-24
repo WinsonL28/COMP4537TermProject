@@ -8,7 +8,7 @@ tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_ID,
     device_map="auto",
-    torch_dtype=torch.float16
+    dtype=torch.float16
 )
 
 
@@ -34,24 +34,46 @@ Strictly follow these examples. If you ever produce any description that implies
 """
 
 
-def build_chatml(character_text, previous_context, action, prompt):
+def build_chatml_from_json(data_json):
+    """
+    Takes the full incoming JSON and converts it into ChatML
+    """
+    system_text = data_json.get("system", AI_JOB)
+    character_data = data_json.get("character", {})
+    preferences = data_json.get("preferences", {})
+    recent_story = data_json.get("recent_story", [])
+    new_prompt = data_json.get("new_prompt", "")
+
+    # Convert nested objects to pretty JSON strings
+    character_text = json.dumps(character_data, indent=2)
+    preferences_text = json.dumps(preferences, indent=2)
+    recent_story_text = json.dumps(recent_story, indent=2)
+
+    # Build user content
+    user_content = (
+        f"Character Data:\n{character_text}\n\n"
+        f"Preferences:\n{preferences_text}\n\n"
+        f"Recent Story:\n{recent_story_text}\n\n"
+        f"Player Prompt:\n{new_prompt}"
+    )
+
     messages = [
-        {"role": "system", "content": AI_JOB.strip()},
-        {
-            "role": "user",
-            "content": f"Character Data:\n{character_text}\n\nPrevious context: {previous_context}\n\nAction: {action}\n\nPrompt: {prompt}"
-        }
+        {"role": "system", "content": system_text.strip()},
+        {"role": "user", "content": user_content}
     ]
+
     chatml = ""
     for m in messages:
         chatml += f"<|im_start|>{m['role']}\n{m['content']}<|im_end|>\n"
     chatml += "<|im_start|>assistant\n"
+
     return chatml
 
-
-def generate_response(character_text, previous_context, action, prompt, max_tokens=400):
-    chatml_prompt = build_chatml(character_text, previous_context, action, prompt)
-
+def generate_response_from_json(data_json, max_tokens=400):
+    """
+    Takes the full JSON and returns the LLM-generated text.
+    """
+    chatml_prompt = build_chatml_from_json(data_json)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     inputs = tokenizer(chatml_prompt, return_tensors="pt").to(device)
 
@@ -66,7 +88,7 @@ def generate_response(character_text, previous_context, action, prompt, max_toke
 
     decoded = tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
 
-    # Clean up any ChatML markers
+    # Clean out ChatML markers
     if "<|im_start|>assistant" in decoded:
         decoded = decoded.split("<|im_start|>assistant")[-1].strip()
     if "<|im_end|>" in decoded:
