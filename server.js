@@ -1,49 +1,40 @@
-const http = require('http');
-const axios = require('axios');
 require('dotenv').config();
+const express = require('express');
+const axios = require('axios');
+const swaggerUi = require('swagger-ui-express');
+const YAML = require('yamljs');
+const cors = require('cors');
 
-
+const swaggerDocument = YAML.load('./swagger.yaml');
+const app = express();
+const PORT = process.env.PORT || 5000;
 const MODEL_SERVER_URL = `http://${process.env.MODEL_SERVER_IP}:5000/generate`;
 
-const server = http.createServer((req, res) => {
+// Middleware
+app.use(express.json());
+app.use(cors()); // handles preflight OPTIONS automatically
 
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-        res.writeHead(204);
-        res.end();
-        return;
-    }
-
-    if (req.method === 'POST' && req.url === '/dnd') {
-        let body = '';
-
-        req.on('data', chunk => {
-            body += chunk.toString();
-        });
-
-        req.on('end', async () => {
-            try {
-                const { prompt } = JSON.parse(body);
-                const response = await axios.post(MODEL_SERVER_URL, { prompt });
-
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ result: response.data.response }));
-            } catch (error) {
-                console.error('Error contacting model server:', error.message);
-                res.writeHead(500, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: 'Model server unreachable' }));
-            }
-        });
-    } else {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Not found' }));
+// POST /dnd
+app.post('/dnd', async (req, res) => {
+    try {
+        const { prompt } = req.body;
+        const response = await axios.post(MODEL_SERVER_URL, { prompt });
+        res.json({ result: response.data.response });
+    } catch (error) {
+        console.error('Error contacting model server:', error.message);
+        res.status(500).json({ error: 'Model server unreachable' });
     }
 });
 
-server.listen(5000, () => {
-    console.log('DD backend running on port 5000');
+// Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+// 404 handler
+app.use((req, res) => {
+    res.status(404).json({ error: 'Not found' });
+});
+
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Swagger UI: http://localhost:${PORT}/api-docs`);
 });

@@ -1,0 +1,27 @@
+openapi: 3.0.0
+info:
+  title: Term Project API
+  version: 1.0.0
+paths:
+  /dnd:
+    post:
+      summary: Prompts model to generate DnD story continuation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                new_prompt:
+                  type: string
+      responses:
+        '202':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string  
