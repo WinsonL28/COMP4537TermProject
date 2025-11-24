@@ -17,8 +17,7 @@ app.use(cors()); // handles preflight OPTIONS automatically
 // POST
 app.post('/dnd', async (req, res) => {
     try {
-        const prompt = req.body;
-        const response = await axios.post(MODEL_SERVER_URL, { prompt });
+        const response = await axios.post(MODEL_SERVER_URL, req.body);
         res.json({ result: response.data.response });
     } catch (error) {
         console.error('Error contacting model server:', error.message);
