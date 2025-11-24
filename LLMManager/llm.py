@@ -1,4 +1,4 @@
-# llm.py
+import json
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
@@ -53,7 +53,7 @@ def build_chatml_from_json(data_json):
         f"Character Data:\n{character_text}\n\n"
         f"Preferences:\n{preferences_text}\n\n"
         f"Recent Story:\n{recent_story_text}\n\n"
-        f"Player Prompt:\n{new_prompt}"
+        f"Prompt:\n{new_prompt}"
     )
 
     messages = [
@@ -72,6 +72,7 @@ def generate_response_from_json(data_json, max_tokens=400):
     """
     Takes the full JSON and returns the LLM-generated text.
     """
+    print("Generating response from JSON data...")
     chatml_prompt = build_chatml_from_json(data_json)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     inputs = tokenizer(chatml_prompt, return_tensors="pt").to(device)
@@ -84,13 +85,10 @@ def generate_response_from_json(data_json, max_tokens=400):
         do_sample=True,
         pad_token_id=tokenizer.eos_token_id
     )
-
+    print("Generation complete.")
+    
     decoded = tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
 
-    # Clean out ChatML markers
-    if "<|im_start|>assistant" in decoded:
-        decoded = decoded.split("<|im_start|>assistant")[-1].strip()
-    if "<|im_end|>" in decoded:
-        decoded = decoded.split("<|im_end|>")[0].strip()
-
+    decoded = decoded.rsplit("assistant", 1)[-1].strip()
+    
     return decoded
