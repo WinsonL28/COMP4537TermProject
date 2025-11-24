@@ -38,7 +38,6 @@ def build_chatml_from_json(data_json):
     """
     Takes the full incoming JSON and converts it into ChatML
     """
-    system_text = data_json.get("system", AI_JOB)
     character_data = data_json.get("character", {})
     preferences = data_json.get("preferences", {})
     recent_story = data_json.get("recent_story", [])
@@ -58,7 +57,7 @@ def build_chatml_from_json(data_json):
     )
 
     messages = [
-        {"role": "system", "content": system_text.strip()},
+        {"role": "system", "content": AI_JOB.strip()},
         {"role": "user", "content": user_content}
     ]
 
