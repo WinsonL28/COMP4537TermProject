@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: Term Project API
+  title: LLM API
   version: 1.0.0
 paths:
   /dnd:
@@ -25,3 +25,5 @@ paths:
                 properties:
                   message:
                     type: string  
+        '400':
+          description: Bad Request
