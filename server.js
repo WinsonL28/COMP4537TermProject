@@ -12,8 +12,26 @@ const MODEL_SERVER_URL = `http://${process.env.MODEL_SERVER_IP}:5000/generate`;
 
 // Middleware
 app.use(express.json());
-app.use(cors()); // handles preflight OPTIONS automatically
+// CORS configuration
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      const allowedOrigins = [
+        "https://dungeon-dawgs.vercel.app", // your production frontend
+        "http://localhost:5173", // your frontend
+        "http://localhost:5000"  // swagger ui
+      ];
 
+      if (!origin) return callback(null, true); // allow curl/postman
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  })
+);
 // POST
 app.post('/dnd', async (req, res) => {
     try {
